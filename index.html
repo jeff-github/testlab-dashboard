@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Lab Results — cure-hht-qa</title>
+<style>
+  :root{
+    --bg:#0B1220; --bg2:#0E1726; --panel:#13203A; --panel2:#18294390; --raised:#1B2C49;
+    --line:#243352; --line2:#2E3F61;
+    --ink:#E8EEF9; --muted:#8A99B8; --faint:#5C6B8C;
+    --blue:#2E75B6; --blue-br:#56A8EE; --cyan:#3FD4DC;
+    --pass:#34D399; --fail:#F2545B; --skip:#F4B740; --error:#FF8A5B; --idle:#6B7BA0;
+    --r:14px; --r-sm:9px;
+    --mono:"JetBrains Mono","SFMono-Regular","Cascadia Code",ui-monospace,Consolas,monospace;
+    --sans:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+     radial-gradient(1100px 600px at 82% -8%, #15294a 0%, transparent 60%),
+     radial-gradient(900px 500px at -5% 0%, #102038 0%, transparent 55%),
+     var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  a{color:var(--blue-br);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .mono{font-family:var(--mono)}
+  ::selection{background:#2e75b655}
+
+  /* layout */
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+  .rail{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);
+    background:linear-gradient(180deg,#0d1828,#0b1320);padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+  .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 16px}
+  .brand .dot{width:30px;height:30px;border-radius:8px;background:
+     conic-gradient(from 210deg,var(--blue),var(--cyan),var(--blue));
+    box-shadow:0 0 0 1px #ffffff14, 0 6px 18px #2e75b655;position:relative}
+  .brand .dot::after{content:"";position:absolute;inset:6px;border-radius:4px;background:#0b1320}
+  .brand b{font-size:14px;letter-spacing:.2px;display:block;line-height:1.15}
+  .brand span{font-size:10.5px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+  .nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:11px;
+    padding:9px 11px;border-radius:10px;color:var(--muted);font-size:13.5px;font-weight:500;transition:.16s}
+  .nav button .ic{width:17px;text-align:center;opacity:.85}
+  .nav button:hover{background:#ffffff09;color:var(--ink)}
+  .nav button.on{background:linear-gradient(90deg,#2e75b62e,#2e75b610);color:#fff;
+    box-shadow:inset 0 0 0 1px #2e75b63d}
+  .nav button.on .ic{color:var(--cyan);opacity:1}
+  .nav .count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .rail .foot{margin-top:auto;font-size:10.5px;color:var(--faint);line-height:1.5;padding:8px}
+
+  .main{min-width:0}
+  .topbar{position:sticky;top:0;z-index:30;backdrop-filter:blur(8px);
+    background:#0b1220cc;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;padding:13px 26px;flex-wrap:wrap}
+  .crumbs{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .crumbs .k{color:var(--faint)}
+  .crumbs .v{color:var(--ink)}
+  .crumbs .sep{color:var(--line2)}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .btn{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink);
+    padding:8px 13px;border-radius:9px;border:1px solid var(--line2);background:#16243f;transition:.16s;white-space:nowrap}
+  .btn:hover{border-color:var(--blue);background:#1b2c49}
+  .btn.primary{background:linear-gradient(180deg,#3a85cb,#2e75b6);border-color:#3a85cb}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .src-pill{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--muted)}
+  .src-pill b{color:var(--cyan)}
+
+  .wrap{padding:24px 26px 60px;max-width:1320px}
+  .banner{display:none;align-items:center;gap:12px;margin-bottom:20px;padding:11px 16px;border-radius:11px;
+    background:#3a2e0e;border:1px solid #6b5413;color:#f4d780;font-size:12.5px}
+  .banner.show{display:flex}
+  .banner b{color:#ffe9a8}
+
+  section.view{display:none;animation:fade .28s ease}
+  section.view.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:2px 0 14px}
+  h2.sec{font-size:19px;margin:0 0 2px;letter-spacing:-.2px}
+
+  /* hero readout */
+  .hero{display:grid;grid-template-columns:300px 1fr;gap:18px;margin-bottom:22px}
+  .panel{background:linear-gradient(180deg,#14223d,#111d34);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:0 18px 40px -28px #000d}
+  .verdict{padding:22px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
+  .verdict .ring{display:flex;align-items:center;gap:18px}
+  .verdict .label{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .verdict .big{font-size:30px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-top:7px}
+  .verdict .sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:7px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .kpi{padding:15px 16px;display:flex;flex-direction:column;gap:7px;min-width:0}
+  .kpi .n{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .kpi .meter{height:5px;border-radius:3px;background:#22324f;overflow:hidden;margin-top:2px}
+  .kpi .meter i{display:block;height:100%;border-radius:3px}
+
+  /* device board */
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:13px}
+  .tile{padding:15px 16px 14px;border-radius:var(--r);border:1px solid var(--line);
+    background:linear-gradient(180deg,#15233f,#111c32);transition:.18s;cursor:default;position:relative;overflow:hidden}
+  .tile:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 16px 30px -22px #000}
+  .tile .led{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 3px #ffffff0d}
+  .tile .row1{display:flex;align-items:center;gap:9px}
+  .tile .name{font-weight:700;font-size:14px;letter-spacing:-.1px}
+  .tile .api{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--cyan);
+    border:1px solid #2e556b;background:#0e2630;padding:2px 7px;border-radius:6px}
+  .tile .meta{font-family:var(--mono);font-size:11px;color:var(--faint);margin:9px 0 11px;display:flex;gap:8px;flex-wrap:wrap}
+  .tile .meta .tag{color:var(--muted)}
+  .tile .bar{height:7px;border-radius:4px;display:flex;overflow:hidden;background:#22324f}
+  .tile .bar i{height:100%}
+  .tile .legend{display:flex;gap:12px;margin-top:9px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tile .legend b{color:var(--ink)}
+  .tile .ribbon{position:absolute;top:11px;right:-32px;transform:rotate(45deg);font-size:9px;font-weight:800;
+    letter-spacing:.1em;padding:3px 36px;color:#0b1220;display:none}
+
+  /* tables */
+  .tablewrap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#101c31}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+    font-weight:600;padding:11px 14px;border-bottom:1px solid var(--line);background:#0f1b2f;position:sticky;top:0}
+  td{padding:11px 14px;border-bottom:1px solid #1a2740;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#ffffff06}
+  td.mono,th.mono{font-family:var(--mono);font-size:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    padding:3px 9px;border-radius:20px;letter-spacing:.02em}
+  .chip .d{width:6px;height:6px;border-radius:50%}
+  .expand{cursor:pointer;color:var(--blue-br);font-size:11.5px;font-weight:600}
+  .trace{display:none;background:#0a1424;border-top:1px dashed #233!important}
+  .trace.show{display:table-row}
+  .trace pre{margin:0;padding:13px 16px;font-family:var(--mono);font-size:11.5px;color:#d6b4b4;
+    white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:auto}
+
+  .toolrow{display:flex;align-items:center;gap:10px;margin-bottom:13px;flex-wrap:wrap}
+  .search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:#101d33;
+    border:1px solid var(--line2);border-radius:9px;padding:8px 12px}
+  .search input{all:unset;flex:1;color:var(--ink);font-size:13px}
+  .search input::placeholder{color:var(--faint)}
+  .seg{display:flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+  .seg button{all:unset;cursor:pointer;padding:7px 13px;font-size:12px;font-weight:600;color:var(--muted);transition:.14s}
+  .seg button.on{background:#1d2f4d;color:#fff}
+  .seg button:hover{color:#fff}
+
+  /* perf */
+  .perfgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .perfcard{padding:16px 18px}
+  .perfcard h4{margin:0 0 2px;font-size:14px}
+  .perfcard .pdev{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:14px}
+  .metric{margin-bottom:14px}
+  .metric .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+  .metric .mh .mn{font-size:11.5px;color:var(--muted);font-weight:600}
+  .metric .mh .mv{font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .metric svg{display:block;width:100%;height:46px}
+
+  /* screenshots */
+  .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:13px}
+  .shot{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0d1828}
+  .shot img{display:block;width:100%;height:300px;object-fit:cover;background:#0a1322}
+  .shot .cap{padding:8px 11px;font-size:11px;color:var(--muted);font-family:var(--mono);
+    border-top:1px solid var(--line)}
+
+  .empty{padding:48px 20px;text-align:center;color:var(--faint);font-size:13px;border:1px dashed var(--line2);border-radius:var(--r)}
+  .empty b{display:block;color:var(--muted);margin-bottom:5px;font-size:14px}
+
+  /* config drawer */
+  .scrim{position:fixed;inset:0;background:#04070cbb;backdrop-filter:blur(2px);display:none;z-index:60}
+  .scrim.show{display:block}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(440px,92vw);z-index:70;
+    background:linear-gradient(180deg,#101c31,#0c1626);border-left:1px solid var(--line);
+    transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.7,.2,1);
+    display:flex;flex-direction:column;box-shadow:-30px 0 60px -30px #000}
+  .drawer.show{transform:none}
+  .drawer header{padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+  .drawer header h3{margin:0;font-size:16px}
+  .drawer header p{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+  .drawer .body{padding:18px 22px;overflow:auto;display:flex;flex-direction:column;gap:15px}
+  .field label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:6px}
+  .field input{width:100%;background:#0c1726;border:1px solid var(--line2);border-radius:9px;
+    color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:10px 12px}
+  .field input:focus{outline:none;border-color:var(--blue)}
+  .field .hint{font-size:11px;color:var(--faint);margin-top:5px;line-height:1.5}
+  .drawer .actions{padding:16px 22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+  .status{font-size:12px;line-height:1.5;padding:10px 12px;border-radius:9px;display:none}
+  .status.show{display:block}
+  .status.err{background:#3a1417;border:1px solid #7a2630;color:#ffb4b4}
+  .status.ok{background:#0e2c22;border:1px solid #1d5e46;color:#9ff0cc}
+  .status.work{background:#13243f;border:1px solid #2c4a78;color:#bcd6ff}
+  details.codeblk{background:#0a1424;border:1px solid var(--line2);border-radius:9px;padding:0 12px}
+  details.codeblk summary{cursor:pointer;padding:10px 0;font-size:12px;color:var(--muted);font-weight:600}
+  details.codeblk pre{margin:0 0 12px;font-family:var(--mono);font-size:11px;color:#bcd;white-space:pre-wrap}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .rail{position:fixed;left:0;top:0;z-index:80;transform:translateX(-100%);transition:.24s;width:232px}
+    .rail.show{transform:none}
+    .hero{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .menu-btn{display:inline-flex!important}
+  }
+  .menu-btn{display:none}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ░░ sidebar ░░ -->
+  <aside class="rail" id="rail">
+    <div class="brand">
+      <div class="dot"></div>
+      <div><b>Test Lab</b><span>Tool Results</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-view="overview" class="on"><span class="ic">◵</span>Overview</button>
+      <button data-view="devices"><span class="ic">▦</span>Devices<span class="count" id="c-dev">0</span></button>
+      <button data-view="steps"><span class="ic">≣</span>Steps<span class="count" id="c-step">0</span></button>
+      <button data-view="tests"><span class="ic">✓</span>Test cases<span class="count" id="c-tc">0</span></button>
+      <button data-view="perf"><span class="ic">∿</span>Performance<span class="count" id="c-perf">0</span></button>
+      <button data-view="shots"><span class="ic">▣</span>Screenshots<span class="count" id="c-shot">0</span></button>
+      <button data-view="artifacts"><span class="ic">⛁</span>Artifacts<span class="count" id="c-art">0</span></button>
+    </nav>
+    <div class="foot">
+      Cure-HHT · Clinical Diary<br>QA test evidence viewer<br>
+      <span class="mono" style="color:var(--line2)">v1.0 · offline</span>
+    </div>
+  </aside>
+
+  <!-- ░░ main ░░ -->
+  <main class="main">
+    <div class="topbar">
+      <button class="btn menu-btn" id="menuBtn">☰</button>
+      <div class="crumbs">
+        <span class="k">project</span><span class="v" id="cb-proj">—</span>
+        <span class="sep">/</span><span class="k">history</span><span class="v mono" id="cb-hist">—</span>
+        <span class="sep">/</span><span class="k">execution</span><span class="v mono" id="cb-exec">—</span>
+      </div>
+      <div class="top-actions">
+        <span class="src-pill">source <b id="srcLabel">sample</b></span>
+        <button class="btn" id="cfgBtn">Data source</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="banner" id="banner">
+        <span style="font-size:16px">⚠</span>
+        <div><b>Showing sample data.</b> These numbers are synthetic placeholders so you can explore the layout.
+        Open <b>Data source</b> to load a real run (JSON from the fetcher, or a live token).</div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <section class="view on" data-view="overview">
+        <div class="eyebrow">Execution summary</div>
+        <div class="hero">
+          <div class="panel verdict">
+            <div class="ring">
+              <div id="donut"></div>
+              <div>
+                <div class="label">Outcome</div>
+                <div class="big" id="verdictText">—</div>
+                <div class="sub" id="verdictSub">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel kpis" id="kpis"></div>
+        </div>
+
+        <div class="eyebrow">Device coverage</div>
+        <h2 class="sec" style="margin-bottom:16px">Status board</h2>
+        <div class="board" id="boardMini"></div>
+      </section>
+
+      <!-- DEVICES -->
+      <section class="view" data-view="devices">
+        <div class="eyebrow">Environments</div>
+        <h2 class="sec">Device matrix</h2>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 18px">
+          One tile per environment in this execution. The LED encodes the device outcome; the bar
+          splits its test results.</p>
+        <div class="board" id="board"></div>
+      </section>
+
+      <!-- STEPS -->
+      <section class="view" data-view="steps">
+        <div class="eyebrow">Execution steps</div>
+        <h2 class="sec" style="margin-bottom:16px">Steps</h2>
+        <div class="tablewrap"><table id="stepTable"></table></div>
+      </section>
+
+      <!-- TESTS -->
+      <section class="view" data-view="tests">
+        <div class="eyebrow">Individual test cases</div>
+        <h2 class="sec" style="margin-bottom:14px">Test cases</h2>
+        <div class="toolrow">
+          <div class="search"><span style="color:var(--faint)">⌕</span>
+            <input id="tcSearch" placeholder="Filter by test, class or device…"></div>
+          <div class="seg" id="tcFilter">
+            <button data-f="all" class="on">All</button>
+            <button data-f="failed">Failed</button>
+            <button data-f="error">Errors</button>
+            <button data-f="skipped">Skipped</button>
+            <button data-f="passed">Passed</button>
+          </div>
+        </div>
+        <div class="tablewrap"><table id="tcTable"></table></div>
+      </section>
+
+      <!-- PERF -->
+      <section class="view" data-view="perf">
+        <div class="eyebrow">Performance metrics</div>
+        <h2 class="sec" style="margin-bottom:4px">Device telemetry</h2>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 18px">
+          Sampled over the test session per device, from the Tool Results <span class="mono">perfSampleSeries</span> endpoint.</p>
+        <div class="perfgrid" id="perfGrid"></div>
+      </section>
+
+      <!-- SHOTS -->
+      <section class="view" data-view="shots">
+        <div class="eyebrow">Screenshot thumbnails</div>
+        <h2 class="sec" style="margin-bottom:16px">Captured frames</h2>
+        <div class="shots" id="shotGrid"></div>
+      </section>
+
+      <!-- ARTIFACTS -->
+      <section class="view" data-view="artifacts">
+        <div class="eyebrow">Evidence files</div>
+        <h2 class="sec" style="margin-bottom:4px">Artifacts &amp; xUnit references</h2>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 18px">
+          Logcat, video, and JUnit/xUnit XML outputs retained in Cloud Storage. Paths are
+          <span class="mono">gs://</span> URIs from the run.</p>
+        <div class="tablewrap"><table id="artTable"></table></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ░░ config drawer ░░ -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <header>
+    <h3>Data source</h3>
+    <p>Load a run three ways. The recommended path for archived evidence is the JSON file
+       produced by <span class="mono">fetch_toolresults.py</span>.</p>
+  </header>
+  <div class="body">
+    <div class="field"><label>Project ID</label><input id="i-proj" value="cure-hht-qa"></div>
+    <div class="field"><label>History ID</label><input id="i-hist" value="bh.158f90b8ea851c70"></div>
+    <div class="field"><label>Execution ID</label><input id="i-exec" value="7594123354358322967"></div>
+
+    <div class="field">
+      <label>① Load JSON file <span style="color:var(--cyan)">— recommended</span></label>
+      <input type="file" id="i-file" accept="application/json,.json"
+        style="font-family:var(--sans);padding:8px">
+      <div class="hint">Pick the <span class="mono">dashboard_data.json</span> written by the fetcher.
+        Fully offline — nothing leaves your machine.</div>
+    </div>
+
+    <div class="field">
+      <label>② Live API — OAuth token</label>
+      <input id="i-token" placeholder="ya29.… (gcloud auth print-access-token)">
+      <div class="hint">Fetches directly in the browser. May be blocked by CORS depending on your
+        environment — if it fails, use the JSON path.</div>
+    </div>
+
+    <details class="codeblk">
+      <summary>How to generate the JSON</summary>
+<pre>gcloud auth login
+python fetch_toolresults.py \
+  --project cure-hht-qa \
+  --history bh.158f90b8ea851c70 \
+  --execution 7594123354358322967 \
+  --out dashboard_data.json</pre>
+    </details>
+
+    <div class="status" id="status"></div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="loadLive">Fetch live from API</button>
+    <button class="btn" id="loadSample">Reload sample data</button>
+  </div>
+</aside>
+
+<script>
+/* ───────────────────────── helpers ───────────────────────── */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const fmtDur = s => s==null?'—':(s<60?`${(+s).toFixed(s<10?2:1)}s`:`${Math.floor(s/60)}m ${Math.round(s%60)}s`);
+const COL = {pass:'var(--pass)',fail:'var(--fail)',skip:'var(--skip)',error:'var(--error)',idle:'var(--idle)'};
+
+// normalize Tool Results outcome/status strings to our 4 buckets
+function bucket(x){
+  x=(x||'').toLowerCase();
+  if(['success','passed','pass'].includes(x))return'pass';
+  if(['failure','failed','fail'].includes(x))return'fail';
+  if(['error','inconclusive'].includes(x))return'error';
+  if(['skipped','skip'].includes(x))return'skip';
+  if(['flaky'].includes(x))return'fail';
+  return 'idle';
+}
+const verdictWord = b => ({pass:'PASS',fail:'FAIL',error:'ERROR',skip:'SKIPPED',idle:'—'}[b]);
+
+/* ───────────────────────── SVG charts ───────────────────────── */
+function donut(passed,failed,errors,skipped){
+  const tot=Math.max(passed+failed+errors+skipped,1);
+  const segs=[[passed,COL.pass],[failed,COL.fail],[errors,COL.error],[skipped,COL.skip]];
+  const R=46,C=2*Math.PI*R; let off=0;
+  const pct=Math.round(passed/tot*100);
+  let rings=segs.filter(s=>s[0]>0).map(([v,c])=>{
+    const len=v/tot*C, dash=`${len} ${C-len}`, r=`<circle cx="60" cy="60" r="${R}" fill="none"
+      stroke="${c}" stroke-width="12" stroke-dasharray="${dash}" stroke-dashoffset="${-off}"
+      transform="rotate(-90 60 60)" stroke-linecap="butt"/>`; off+=len; return r;}).join('');
+  return `<svg width="120" height="120" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="${R}" fill="none" stroke="#22324f" stroke-width="12"/>
+    ${rings}
+    <text x="60" y="56" text-anchor="middle" fill="#fff" font-size="26" font-weight="800"
+      font-family="var(--mono)">${pct}%</text>
+    <text x="60" y="74" text-anchor="middle" fill="var(--faint)" font-size="10"
+      letter-spacing="1.5" font-family="var(--mono)">PASS RATE</text></svg>`;
+}
+
+function spark(points,color){
+  if(!points||points.length<2) return `<svg viewBox="0 0 300 46" preserveAspectRatio="none"></svg>`;
+  const W=300,H=46,pad=4;
+  const xs=points.map(p=>p.t), ys=points.map(p=>p.v);
+  const x0=Math.min(...xs),x1=Math.max(...xs)||1,y0=Math.min(...ys),y1=Math.max(...ys);
+  const sx=t=>pad+(t-x0)/((x1-x0)||1)*(W-2*pad);
+  const sy=v=>H-pad-(v-y0)/((y1-y0)||1)*(H-2*pad);
+  let d='',a='';
+  points.forEach((p,i)=>{const X=sx(p.t).toFixed(1),Y=sy(p.v).toFixed(1);
+    d+=(i?'L':'M')+X+' '+Y+' '; a+=(i?'L':'M')+X+' '+Y+' ';});
+  a+=`L${sx(x1).toFixed(1)} ${H-pad} L${sx(x0).toFixed(1)} ${H-pad} Z`;
+  const id='g'+Math.random().toString(36).slice(2,7);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity=".34"/>
+      <stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${a}" fill="url(#${id})"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* ───────────────────────── render ───────────────────────── */
+let DATA=null;
+
+function render(d){
+  DATA=d;
+  const m=d.meta||{}, t=d.totals||{}, ex=d.execution||{};
+  $('#cb-proj').textContent=m.projectId||'—';
+  $('#cb-hist').textContent=m.historyId||'—';
+  $('#cb-exec').textContent=m.executionId||'—';
+  const sample = /sample/i.test(m.source||'');
+  $('#srcLabel').textContent = sample?'sample':(m.source||'').includes('Live')?'live API':'JSON file';
+  $('#banner').classList.toggle('show',sample);
+
+  // hero
+  const vb=bucket(ex.outcome);
+  $('#donut').innerHTML=donut(t.passed||0,t.failed||0,t.errors||0,t.skipped||0);
+  $('#verdictText').textContent=verdictWord(vb);
+  $('#verdictText').style.color=COL[vb];
+  $('#verdictSub').textContent=`${t.tests||0} tests · ${t.devices||0} devices · ${fmtDur(ex.durationSec)}`;
+
+  const kpiDefs=[
+    ['Passed',t.passed||0,COL.pass,(t.passed||0)/Math.max(t.tests,1)],
+    ['Failed',t.failed||0,COL.fail,(t.failed||0)/Math.max(t.tests,1)],
+    ['Errors',t.errors||0,COL.error,(t.errors||0)/Math.max(t.tests,1)],
+    ['Skipped',t.skipped||0,COL.skip,(t.skipped||0)/Math.max(t.tests,1)],
+  ];
+  $('#kpis').innerHTML=kpiDefs.map(([l,n,c,f])=>`<div class="kpi">
+    <div class="n" style="color:${c}">${n}</div><div class="l">${l}</div>
+    <div class="meter"><i style="width:${Math.round(f*100)}%;background:${c}"></i></div></div>`).join('');
+
+  renderBoard($('#boardMini'),d);
+  renderBoard($('#board'),d);
+  renderSteps(d); renderTests(d); renderPerf(d); renderShots(d); renderArtifacts(d);
+
+  // counts
+  $('#c-dev').textContent=(d.environments||[]).length||(d.steps||[]).length;
+  $('#c-step').textContent=(d.steps||[]).length;
+  $('#c-tc').textContent=(d.testCases||[]).length;
+  $('#c-perf').textContent=(d.perf||[]).length;
+  $('#c-shot').textContent=(d.thumbnails||[]).length;
+  $('#c-art').textContent=(d.artifacts||[]).length;
+}
+
+function deviceStats(d,label){
+  const tcs=(d.testCases||[]).filter(x=>x.envLabel===label);
+  if(tcs.length){
+    const c={pass:0,fail:0,error:0,skip:0};
+    tcs.forEach(x=>c[bucket(x.status)]=(c[bucket(x.status)]||0)+1);
+    return c;
+  }
+  const st=(d.steps||[]).find(s=>s.envLabel===label);
+  if(st){const k=st.testCounts||{};
+    return {pass:Math.max((k.total||0)-(k.failures||0)-(k.errors||0)-(k.skipped||0),0),
+            fail:k.failures||0,error:k.errors||0,skip:k.skipped||0};}
+  return {pass:0,fail:0,error:0,skip:0};
+}
+
+function renderBoard(host,d){
+  const envs = (d.environments&&d.environments.length)?d.environments
+    : (d.steps||[]).map(s=>({label:s.envLabel,modelName:s.modelName,model:s.model,
+        version:s.version,locale:'',orientation:'',outcome:s.outcome}));
+  if(!envs.length){host.innerHTML=emptyMsg('No environments','This execution has no device data yet.');return;}
+  host.innerHTML=envs.map(e=>{
+    const b=bucket(e.outcome), s=deviceStats(d,e.label);
+    const tot=Math.max(s.pass+s.fail+s.error+s.skip,1);
+    const seg=[[s.pass,COL.pass],[s.fail,COL.fail],[s.error,COL.error],[s.skip,COL.skip]]
+      .filter(x=>x[0]>0).map(([v,c])=>`<i style="width:${v/tot*100}%;background:${c}"></i>`).join('')
+      || `<i style="width:100%;background:#22324f"></i>`;
+    const ribbon = b==='fail'?`<div class="ribbon" style="display:block;background:var(--fail)">FAIL</div>`
+      : b==='error'?`<div class="ribbon" style="display:block;background:var(--error)">ERR</div>`:'';
+    return `<div class="tile">${ribbon}
+      <div class="row1">
+        <span class="led" style="background:${COL[b]};box-shadow:0 0 10px ${COL[b]},0 0 0 3px #ffffff0d"></span>
+        <span class="name">${esc(e.modelName||e.model||'Device')}</span>
+        <span class="api">API ${esc(e.version||'?')}</span>
+      </div>
+      <div class="meta">
+        <span class="tag">${esc(e.model||'')}</span>
+        ${e.locale?`<span>· ${esc(e.locale)}</span>`:''}
+        ${e.orientation?`<span>· ${esc(e.orientation)}</span>`:''}
+      </div>
+      <div class="bar">${seg}</div>
+      <div class="legend">
+        <span><b style="color:var(--pass)">${s.pass}</b> pass</span>
+        ${s.fail?`<span><b style="color:var(--fail)">${s.fail}</b> fail</span>`:''}
+        ${s.error?`<span><b style="color:var(--error)">${s.error}</b> err</span>`:''}
+        ${s.skip?`<span><b style="color:var(--skip)">${s.skip}</b> skip</span>`:''}
+      </div></div>`;
+  }).join('');
+}
+
+function chip(b){return `<span class="chip" style="background:${COL[b]}1f;color:${COL[b]}">
+  <span class="d" style="background:${COL[b]}"></span>${verdictWord(b)}</span>`;}
+
+function renderSteps(d){
+  const rows=(d.steps||[]);
+  const t=$('#stepTable');
+  if(!rows.length){t.outerHTML='';$('.tablewrap',$('section[data-view=steps]')).innerHTML=emptyMsg('No steps','');return;}
+  t.innerHTML=`<thead><tr><th>Device</th><th>API</th><th>Outcome</th>
+     <th style="text-align:right">Tests</th><th style="text-align:right">Fail</th>
+     <th style="text-align:right">Skip</th><th style="text-align:right">Duration</th>
+     <th class="mono">Step ID</th></tr></thead><tbody>${
+    rows.map(s=>{const k=s.testCounts||{};return `<tr>
+      <td><b>${esc(s.modelName||s.model)}</b><div class="mono" style="color:var(--faint);font-size:11px">${esc(s.name||'')}</div></td>
+      <td class="mono">${esc(s.version)}</td>
+      <td>${chip(bucket(s.outcome))}</td>
+      <td class="mono" style="text-align:right">${k.total||0}</td>
+      <td class="mono" style="text-align:right;color:${(k.failures||0)?'var(--fail)':'var(--faint)'}">${k.failures||0}</td>
+      <td class="mono" style="text-align:right;color:${(k.skipped||0)?'var(--skip)':'var(--faint)'}">${k.skipped||0}</td>
+      <td class="mono" style="text-align:right">${fmtDur(s.durationSec)}</td>
+      <td class="mono" style="color:var(--faint)">${esc(s.stepId||'')}</td></tr>`;}).join('')
+  }</tbody>`;
+}
+
+let tcState={q:'',f:'all'};
+function renderTests(d){
+  const t=$('#tcTable');
+  let rows=(d.testCases||[]);
+  if(!rows.length){$('.tablewrap',$('section[data-view=tests]')).innerHTML=emptyMsg('No test cases','No per-test records were returned for this execution.');return;}
+  const q=tcState.q.toLowerCase(),f=tcState.f;
+  const view=rows.filter(r=>{
+    const bk=bucket(r.status);
+    if(f!=='all'){ if(f==='passed'&&bk!=='pass')return false;
+      if(f==='failed'&&bk!=='fail')return false;
+      if(f==='error'&&bk!=='error')return false;
+      if(f==='skipped'&&bk!=='skip')return false; }
+    if(q){return (r.name+r.className+r.envLabel).toLowerCase().includes(q);}
+    return true;});
+  t.innerHTML=`<thead><tr><th>Test</th><th>Device</th><th>Status</th>
+    <th style="text-align:right">Time</th><th></th></tr></thead><tbody>${
+    view.map((r,i)=>{const bk=bucket(r.status);const tr=(r.stackTrace||r.skippedMessage||'').trim();
+      return `<tr>
+        <td><b>${esc(r.name)}</b><div class="mono" style="color:var(--faint);font-size:11px">${esc(r.className)}</div></td>
+        <td class="mono" style="font-size:11.5px">${esc(r.model||r.envLabel)}</td>
+        <td>${chip(bk)}</td>
+        <td class="mono" style="text-align:right">${fmtDur(r.durationSec)}</td>
+        <td>${tr?`<span class="expand" data-x="${i}">view ▾</span>`:''}</td></tr>
+        ${tr?`<tr class="trace" id="x${i}"><td colspan="5"><pre>${esc(tr)}</pre></td></tr>`:''}`;}).join('')
+      || `<tr><td colspan="5" style="color:var(--faint);text-align:center;padding:26px">No matching tests.</td></tr>`
+  }</tbody>`;
+  $$('.expand',t).forEach(b=>b.onclick=()=>{$('#x'+b.dataset.x).classList.toggle('show');
+    b.textContent=$('#x'+b.dataset.x).classList.contains('show')?'hide ▴':'view ▾';});
+}
+
+const METRIC_META={
+  cpu:['CPU','var(--cyan)','%'], memory:['Memory','var(--blue-br)','MB'],
+  graphics:['Frame rate','var(--pass)','fps'], network:['Network','var(--skip)','KB/s'],
+};
+function renderPerf(d){
+  const host=$('#perfGrid');
+  if(!(d.perf||[]).length){host.innerHTML=emptyMsg('No performance samples',
+    'This run has no perfSampleSeries data. Robo and instrumentation runs collect it when enabled.');return;}
+  host.innerHTML=d.perf.map(p=>{
+    const metrics=Object.entries(p.series||{}).map(([key,pts])=>{
+      const base=key.split(':')[0];
+      const [nm,color,unit]=METRIC_META[base]||[key,'var(--blue-br)',''];
+      const last=pts.length?pts[pts.length-1].v:0;
+      const peak=Math.max(...pts.map(x=>x.v));
+      return `<div class="metric"><div class="mh"><span class="mn">${esc(nm)}</span>
+        <span class="mv">${(+last).toFixed(1)}<span style="color:var(--faint)"> ${unit} · peak ${(+peak).toFixed(1)}</span></span></div>
+        ${spark(pts,color.replace('var(--cyan)','#3FD4DC').replace('var(--blue-br)','#56A8EE').replace('var(--pass)','#34D399').replace('var(--skip)','#F4B740'))}</div>`;
+    }).join('');
+    return `<div class="panel perfcard"><h4>${esc(p.model||'Device')}</h4>
+      <div class="pdev">${esc(p.envLabel||'')}</div>${metrics}</div>`;
+  }).join('');
+}
+
+function renderShots(d){
+  const host=$('#shotGrid');
+  if(!(d.thumbnails||[]).length){host.innerHTML=emptyMsg('No screenshots',
+    'No thumbnails were captured for this execution.');return;}
+  host.innerHTML=d.thumbnails.map(s=>`<div class="shot">
+    <img loading="lazy" src="${s.dataUri||s.sourceUri||''}" alt="frame">
+    <div class="cap">${esc(s.envLabel||'')}</div></div>`).join('');
+}
+
+function renderArtifacts(d){
+  const t=$('#artTable');
+  const rows=(d.artifacts||[]);
+  if(!rows.length){$('.tablewrap',$('section[data-view=artifacts]')).innerHTML=emptyMsg('No artifacts','');return;}
+  const ico=n=>/\.mp4$/i.test(n)?'▶':/log/i.test(n)?'≣':/\.xml$/i.test(n)?'⟨⟩':'⛁';
+  t.innerHTML=`<thead><tr><th>File</th><th>Device</th><th>Type</th><th class="mono">Location</th></tr></thead><tbody>${
+    rows.map(a=>{const xml=/\.xml$/i.test(a.name);
+      return `<tr>
+      <td><span style="color:var(--cyan);margin-right:7px">${ico(a.name)}</span><b>${esc(a.name)}</b></td>
+      <td class="mono" style="font-size:11.5px">${esc(a.envLabel||'')}</td>
+      <td>${xml?'<span class="chip" style="background:#2e75b61f;color:var(--blue-br)"><span class="d" style="background:var(--blue-br)"></span>xUnit XML</span>':'<span style="color:var(--faint);font-size:12px">output</span>'}</td>
+      <td class="mono" style="color:var(--faint);font-size:11px;word-break:break-all">${esc(a.fileUri||'')}</td></tr>`;}).join('')
+  }</tbody>`;
+}
+
+function emptyMsg(title,sub){return `<div class="empty"><b>${esc(title)}</b>${esc(sub||'')}</div>`;}
+
+/* ───────────────────────── navigation ───────────────────────── */
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $$('#nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  $$('.view').forEach(v=>v.classList.toggle('on',v.dataset.view===b.dataset.view));
+  $('#rail').classList.remove('show');window.scrollTo(0,0);});
+$('#menuBtn').onclick=()=>$('#rail').classList.toggle('show');
+$('#tcSearch').addEventListener('input',e=>{tcState.q=e.target.value;renderTests(DATA);});
+$('#tcFilter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $$('#tcFilter button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  tcState.f=b.dataset.f;renderTests(DATA);});
+
+/* config drawer */
+const drawer=$('#drawer'),scrim=$('#scrim');
+const openCfg=()=>{drawer.classList.add('show');scrim.classList.add('show');};
+const closeCfg=()=>{drawer.classList.remove('show');scrim.classList.remove('show');};
+$('#cfgBtn').onclick=openCfg; scrim.onclick=closeCfg;
+function setStatus(kind,msg){const s=$('#status');s.className='status show '+kind;s.innerHTML=msg;}
+
+/* ───────────────────────── live API ───────────────────────── */
+const TR='https://toolresults.googleapis.com/toolresults/v1beta3';
+const NAMES={redfin:'Pixel 5',cheetah:'Pixel 7 Pro',shiba:'Pixel 8',panther:'Pixel 7',oriole:'Pixel 6',
+  husky:'Pixel 8 Pro',akita:'Pixel 9','MediumPhone.arm':'Medium Phone (Arm)','SmallPhone.arm':'Small Phone (Arm)'};
+const dsec=x=>x?(+(x.seconds||0)+(x.nanos||0)/1e9):null;
+function dimify(o){const m={};(o.dimensionValue||[]).forEach(d=>m[d.key]=d.value);return m;}
+function labelOf(m){const n=NAMES[m.Model]||m.Model||'?';const tail=[m.Locale,m.Orientation].filter(Boolean).join('-');
+  return `${n} · API ${m.Version||'?'}`+(tail?` · ${tail}`:'');}
+
+async function apiGet(path,token){
+  const r=await fetch(TR+path,{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok){const b=await r.text();throw new Error(`${r.status} ${path.split('/').slice(-1)} — ${b.slice(0,140)}`);}
+  return r.json();
+}
+async function apiAll(path,token,key){
+  let items=[],tok='';
+  do{const sep=path.includes('?')?'&':'?';
+    const d=await apiGet(path+sep+'pageSize=200'+(tok?'&pageToken='+tok:''),token);
+    items=items.concat(d[key]||[]);tok=d.nextPageToken||'';}while(tok);
+  return items;
+}
+
+async function fetchLive(){
+  const proj=$('#i-proj').value.trim(),hist=$('#i-hist').value.trim(),exec=$('#i-exec').value.trim();
+  const token=$('#i-token').value.trim();
+  if(!token){setStatus('err','Paste an OAuth access token first, or use the JSON path.');return;}
+  const ep=`/projects/${proj}/histories/${hist}/executions/${exec}`;
+  setStatus('work','Connecting to Tool Results API…');
+  try{
+    const execu=await apiGet(ep,token);
+    setStatus('work','Reading environments &amp; steps…');
+    const out={meta:{projectId:proj,historyId:hist,executionId:exec,source:'Live API (browser)',
+      fetchedAt:new Date().toISOString()},
+      execution:{outcome:(execu.outcome||{}).summary||'unset',state:execu.state,
+        creationTime:execu.creationTime,completionTime:execu.completionTime,
+        durationSec:(execu.completionTime&&execu.creationTime)?
+          (+execu.completionTime.seconds-+execu.creationTime.seconds):null},
+      environments:[],steps:[],testCases:[],perf:[],thumbnails:[],artifacts:[]};
+
+    (await apiAll(ep+'/environments',token,'environments')).forEach(en=>{const m=dimify(en);
+      const er=en.environmentResult||{};
+      out.environments.push({id:en.environmentId,model:m.Model,modelName:NAMES[m.Model]||m.Model,
+        version:m.Version,locale:m.Locale,orientation:m.Orientation,label:labelOf(m),
+        outcome:(er.outcome||{}).summary||'unset'});});
+
+    const steps=await apiAll(ep+'/steps',token,'steps');
+    const tot={tests:0,passed:0,failed:0,errors:0,skipped:0,flaky:0};
+    let si=0;
+    for(const st of steps){si++;const m=dimify(st);const label=labelOf(m);
+      setStatus('work',`Step ${si}/${steps.length}: ${esc(label)}…`);
+      const tes=st.testExecutionStep||{};const c={total:0,failures:0,errors:0,skipped:0,flaky:0};let xunit=null;
+      (tes.testSuiteOverviews||[]).forEach(o=>{c.total+=+o.totalCount||0;c.failures+=+o.failureCount||0;
+        c.errors+=+o.errorCount||0;c.skipped+=+o.skippedCount||0;c.flaky+=+o.flakyCount||0;
+        if(!xunit)xunit=(o.xmlSource||{}).fileUri;});
+      const passed=Math.max(c.total-c.failures-c.errors-c.skipped,0);
+      tot.tests+=c.total;tot.failed+=c.failures;tot.errors+=c.errors;tot.skipped+=c.skipped;tot.passed+=passed;
+      const outputs=[];const te=tes.toolExecution||{};
+      (te.toolOutputs||[]).forEach(o=>{const u=(o.output||{}).fileUri;if(u)outputs.push({name:u.split('/').pop(),fileUri:u});});
+      (te.toolLogs||[]).forEach(l=>{if(l.fileUri)outputs.push({name:l.fileUri.split('/').pop(),fileUri:l.fileUri});});
+      if(xunit)outputs.push({name:xunit.split('/').pop(),fileUri:xunit});
+      outputs.forEach(o=>out.artifacts.push({envLabel:label,stepId:st.stepId,...o}));
+      out.steps.push({stepId:st.stepId,name:st.name,envLabel:label,model:m.Model,
+        modelName:NAMES[m.Model]||m.Model,version:m.Version,outcome:(st.outcome||{}).summary||'unset',
+        durationSec:dsec(st.runDuration),testCounts:c,xUnitUri:xunit,outputs});
+
+      try{(await apiAll(`${ep}/steps/${st.stepId}/testCases`,token,'testCases')).forEach(tc=>{
+        const ref=tc.testCaseReference||{};
+        out.testCases.push({id:tc.testCaseId,name:ref.name||'(unnamed)',className:ref.className||'',
+          envLabel:label,model:NAMES[m.Model]||m.Model,status:tc.status||'passed',
+          durationSec:dsec(tc.elapsedTime),stackTrace:(tc.stackTrace||{}).exception||'',
+          skippedMessage:tc.skippedMessage||''});});}catch(e){}
+
+      try{const series={};
+        for(const ss of await apiAll(`${ep}/steps/${st.stepId}/perfSampleSeries`,token,'perfSampleSeries')){
+          const basic=ss.basicPerfSampleSeries||{};const k=basic.perfMetricType||'metric';
+          const pts=(await apiAll(`${ep}/steps/${st.stepId}/perfSampleSeries/${ss.sampleSeriesId}/samples`,token,'perfSamples'))
+            .map(s=>({t:+(s.sampleTime||{}).seconds||0,v:s.value||0})).sort((a,b)=>a.t-b.t);
+          if(pts.length){const t0=pts[0].t;pts.forEach(p=>p.t=+(p.t-t0).toFixed(2));series[k]=pts;}}
+        if(Object.keys(series).length)out.perf.push({envLabel:label,model:NAMES[m.Model]||m.Model,stepId:st.stepId,series});
+      }catch(e){}
+
+      try{const th=await apiGet(`${ep}/steps/${st.stepId}/thumbnails`,token);
+        (th.thumbnails||[]).forEach(im=>{const t=im.thumbnail||{};if(t.data)
+          out.thumbnails.push({envLabel:label,stepId:st.stepId,
+            dataUri:`data:${t.contentType||'image/jpeg'};base64,${t.data}`});});}catch(e){}
+    }
+    out.totals={...tot,devices:out.environments.length||steps.length};
+    setStatus('ok',`Loaded live run — ${tot.tests} tests across ${out.totals.devices} devices.`);
+    render(out);setTimeout(closeCfg,650);
+  }catch(err){
+    setStatus('err',`<b>Couldn't load.</b> ${esc(err.message)}<br><br>
+      Browser calls to googleapis are often blocked by CORS. Use the JSON path:
+      run <span class="mono">fetch_toolresults.py</span> and load the file above.`);
+  }
+}
+$('#loadLive').onclick=fetchLive;
+
+/* JSON file load */
+$('#i-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{const j=JSON.parse(rd.result);render(j);
+    setStatus('ok',`Loaded ${esc(f.name)} — ${(j.totals||{}).tests||0} tests, ${(j.environments||[]).length} devices.`);
+    setTimeout(closeCfg,600);}
+    catch(err){setStatus('err','Could not parse that file: '+esc(err.message));}};
+  rd.readAsText(f);});
+
+/* ───────────────────────── sample data ───────────────────────── */
+function sampleData(){
+  const devs=[
+    ['MediumPhone.arm','28','en','portrait','success'],
+    ['MediumPhone.arm','30','en','portrait','success'],
+    ['MediumPhone.arm','31','en','portrait','success'],
+    ['MediumPhone.arm','33','en','portrait','success'],
+    ['redfin','30','en','portrait','success'],
+    ['cheetah','33','en','portrait','success'],
+    ['shiba','34','en','portrait','failure'],
+    ['oriole','33','fr','portrait','success'],
+  ];
+  const tests=['recordEpistaxisEvent','editEventIntensity','deleteDiaryEntry',
+    'exportWeeklySummary','offlineSyncRecovery','sessionTimeoutLock'];
+  const envs=[],steps=[],testCases=[],perf=[],thumbs=[],arts=[];
+  const wave=(n,base,amp,noise)=>Array.from({length:n},(_,i)=>({t:+(i*0.7).toFixed(2),
+    v:+(base+Math.sin(i/2.4)*amp+(Math.random()-.5)*noise).toFixed(2)}));
+  devs.forEach(([model,ver,loc,ori,outc],di)=>{
+    const name=NAMES[model]||model;const label=labelOf({Model:model,Version:ver,Locale:loc,Orientation:ori});
+    const sid='SAMPLE-'+(di+1);
+    const failHere=outc==='failure';
+    envs.push({id:'env'+di,model,modelName:name,version:ver,locale:loc,orientation:ori,label,outcome:outc});
+    let fails=0,skips=0;
+    tests.forEach((tn,ti)=>{
+      let status='passed';
+      if(failHere&&ti===4){status='failed';fails++;}
+      else if(ti===5&&di%3===0){status='skipped';skips++;}
+      testCases.push({id:`${sid}-${ti}`,name:tn,className:'org.curehht.clinical_diary.DiaryFlowTest',
+        envLabel:label,model:name,status,durationSec:+(0.1+Math.random()*0.6).toFixed(3),
+        stackTrace:status==='failed'?
+          'java.lang.AssertionError: expected sync banner to disappear within 5000ms\n  at DiaryFlowTest.offlineSyncRecovery(DiaryFlowTest.kt:184)\n  at androidx.test.runner...':'',
+        skippedMessage:status==='skipped'?'Assumption failed: device locale not supported for export path':''});
+    });
+    steps.push({stepId:sid,name:'Instrumentation test',envLabel:label,model,modelName:name,version:ver,
+      outcome:outc,durationSec:14+Math.round(Math.random()*9),
+      testCounts:{total:tests.length,failures:fails,errors:0,skipped:skips,flaky:0},
+      xUnitUri:`gs://cure-hht-qa-test-lab-results/SAMPLE/${model}-${ver}/test_result_1.xml`,
+      outputs:[]});
+    ['logcat','video.mp4','test_result_1.xml','instrumentation.results'].forEach(fn=>{
+      arts.push({envLabel:label,stepId:sid,name:fn,
+        fileUri:`gs://cure-hht-qa-test-lab-results/SAMPLE/${model}-${ver}/${fn}`});});
+    perf.push({envLabel:label,model:name,stepId:sid,series:{
+      cpu:wave(22,28,16,6),memory:wave(22,210+di*8,30,10),graphics:wave(22,58,4,3),network:wave(22,40,30,14)}});
+    // two synthetic frames per first few devices
+    if(di<6){for(let f=0;f<2;f++)thumbs.push({envLabel:label,stepId:sid,dataUri:frameSVG(name,ver,f)});}
+  });
+  const passed=testCases.filter(t=>t.status==='passed').length;
+  const failed=testCases.filter(t=>t.status==='failed').length;
+  const skipped=testCases.filter(t=>t.status==='skipped').length;
+  return {meta:{projectId:'cure-hht-qa',historyId:'bh.158f90b8ea851c70',executionId:'7594123354358322967',
+      source:'SAMPLE / synthetic data',fetchedAt:new Date().toISOString()},
+    execution:{outcome:'failure',state:'complete',durationSec:138},
+    totals:{tests:testCases.length,passed,failed,errors:0,skipped,flaky:0,devices:devs.length},
+    environments:envs,steps,testCases,perf,thumbnails:thumbs,artifacts:arts};
+}
+function frameSVG(name,api,i){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='320'>
+    <rect width='180' height='320' fill='#0d1828'/>
+    <rect x='0' y='0' width='180' height='40' fill='#13203a'/>
+    <rect x='14' y='16' width='70' height='8' rx='4' fill='#2e75b6'/>
+    <rect x='14' y='64' width='152' height='44' rx='8' fill='#16243f'/>
+    <rect x='26' y='80' width='90' height='10' rx='5' fill='#2a3c5e'/>
+    <circle cx='150' cy='86' r='10' fill='#34d399'/>
+    <rect x='14' y='122' width='152' height='44' rx='8' fill='#16243f'/>
+    <rect x='26' y='138' width='110' height='10' rx='5' fill='#2a3c5e'/>
+    <rect x='14' y='250' width='152' height='40' rx='20' fill='#2e75b6'/>
+    <text x='90' y='275' fill='#fff' font-size='13' font-family='monospace' text-anchor='middle'>Record event</text>
+    <text x='90' y='306' fill='#5c6b8c' font-size='10' font-family='monospace' text-anchor='middle'>SAMPLE · ${name} · frame ${i+1}</text>
+  </svg>`;
+  return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));
+}
+$('#loadSample').onclick=()=>{render(sampleData());setStatus('ok','Sample data reloaded.');};
+
+/* boot */
+render(sampleData());
+</script>
+</body>
+</html>
